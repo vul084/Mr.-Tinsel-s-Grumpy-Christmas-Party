@@ -1,114 +1,24 @@
 
-const lights = [
-  { x:68.7, y:44.2, note:'C5', hz:523.25, color:'#ff9574' },
-  { x:29.2, y:53.7, note:'D5', hz:587.33, color:'#ffcf64' },
-  { x:49.8, y:53.8, note:'E5', hz:659.25, color:'#9dc6f1' },
-  { x:16.3, y:64.5, note:'F5', hz:698.46, color:'#ff9996' },
-  { x:70.2, y:66.2, note:'G5', hz:783.99, color:'#ffdb72' },
-  { x:51.8, y:75.0, note:'A5', hz:880.00, color:'#ffa17d' },
-  { x:25.9, y:80.4, note:'B5', hz:987.77, color:'#add5a0' },
-  { x:66.6, y:89.9, note:'C6', hz:1046.50, color:'#aad0f5' }
+let cat;
+let piano;
+
+let songPlaying = false;
+let songIndex = 0;
+let nextNote = 0;
+let starGlow = 0;
+
+let lights = [
+  {x: 68.7, y: 44.8, note: 'C5', color: [255,126,85], glow: 0},
+  {x: 29.2, y: 53.4, note: 'D5', color: [255,207,98], glow: 0},
+  {x: 49.8, y: 54.2, note: 'E5', color: [154,192,238], glow: 0},
+  {x: 16.5, y: 64.7, note: 'F5', color: [250,128,128], glow: 0},
+  {x: 70.5, y: 65.5, note: 'G5', color: [255,203,85], glow: 0},
+  {x: 52, y: 75.2, note: 'A5', color: [255,145,100], glow: 0},
+  {x: 26, y: 80.7, note: 'B5', color: [152,197,140], glow: 0},
+  {x: 67, y: 90.3, note: 'C6', color: [150,194,244], glow: 0}
 ];
 
-const layer = document.getElementById('lights');
-const star = document.getElementById('star');
-const message = document.getElementById('message');
-
-let audio;
-let melodyTimers = [];
-let melodyPlaying = false;
-
-// Create the clickable lights
-lights.forEach((light, index) => {
-  const button = document.createElement('button');
-
-  button.className = 'light';
-  button.style.left = light.x + '%';
-  button.style.top = light.y + '%';
-  button.style.setProperty('--glow', light.color);
-
-  button.setAttribute('aria-label', 'Play light ' + (index + 1));
-
-  button.addEventListener('click', () => playLight(index));
-
-  layer.appendChild(button);
-  light.button = button;
-});
-
-// Start browser audio
-function getAudio() {
-  if (!audio) {
-    audio = new (window.AudioContext || window.webkitAudioContext)();
-  }
-
-  if (audio.state === 'suspended') {
-    audio.resume();
-  }
-
-  return audio;
-}
-
-// Create a music-box-like note
-function bell(hz, length = 0.35) {
-  const ctx = getAudio();
-  const now = ctx.currentTime;
-
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-
-  osc.type = 'sine';
-  osc.frequency.value = hz;
-
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.15, now + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + length + 0.4);
-
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-
-  osc.start(now);
-  osc.stop(now + length + 0.45);
-}
-
-// Make a light glow briefly
-function flashLight(index) {
-  const button = lights[index].button;
-
-  button.classList.remove('playing');
-  void button.offsetWidth;
-  button.classList.add('playing');
-
-  setTimeout(() => {
-    button.classList.remove('playing');
-  }, 400);
-}
-
-// Play a Christmas light
-function playLight(index) {
-  const light = lights[index];
-
-  bell(light.hz);
-  flashLight(index);
-
-  message.textContent = light.note + ' ♪';
-
-  console.log('Played light:', index + 1, light.note);
-}
-
-// Frequencies for the star melody
-const notes = {
-  'B4': 493.88,
-  'C5': 523.25,
-  'C#5': 554.37,
-  'D5': 587.33,
-  'D#5': 622.25,
-  'E5': 659.25,
-  'F#5': 739.99,
-  'G5': 783.99
-};
-
-// Short simplified Sugar Plum Fairy melody
-const sugarPlum = [
+let song = [
   ['G5', 0.5],
   ['E5', 0.5],
   ['G5', 0.5],
@@ -123,95 +33,149 @@ const sugarPlum = [
   ['C#5', 0.5],
   ['C5', 0.25],
   ['C5', 0.25],
-  ['C5', 0.5],
   ['B4', 0.5],
-  ['E5', 0.5],
-  ['C5', 0.5],
-  ['E5', 0.5],
-  ['B4', 0.5],
-  ['G5', 0.5],
-  ['E5', 0.5],
-  ['G5', 0.5],
-  ['F#5', 1]
+  ['E5', 0.5]
 ];
 
-// Stop the song
-function stopMelody() {
-  melodyTimers.forEach(clearTimeout);
-  melodyTimers = [];
-
-  melodyPlaying = false;
-  star.classList.remove('playing');
-  message.textContent = '♪';
+function preload() {
+  cat = loadImage('christmas-cat.png');
 }
 
-// Play the song when the star is clicked
-function playStar() {
-  if (melodyPlaying) {
-    stopMelody();
+function setup() {
+  let w = min(windowWidth * 0.9, 480);
+  let canvas = createCanvas(w, w * cat.height / cat.width);
+  canvas.parent('cat-container');
+
+  piano = new p5.PolySynth();
+}
+
+function draw() {
+  clear();
+  image(cat, 0, 0, width, height);
+
+  noStroke();
+
+  for (let i = 0; i < lights.length; i++) {
+    let light = lights[i];
+
+    if (light.glow > 0) {
+      fill(
+        light.color[0],
+        light.color[1],
+        light.color[2],
+        light.glow
+      );
+
+      circle(
+        width * light.x / 100,
+        height * light.y / 100,
+        width * 0.035
+      );
+
+      light.glow -= 4;
+    }
+  }
+
+  if (starGlow > 0) {
+    fill(255, 215, 105, starGlow);
+    circle(width * 0.48, height * 0.10, width * 0.10);
+    starGlow -= 2;
+  }
+
+  // Play one note at a time
+  if (songPlaying && millis() >= nextNote) {
+
+    if (songIndex < song.length) {
+      let note = song[songIndex][0];
+      let duration = song[songIndex][1];
+
+      piano.play(note, 0.3, 0, 0.3);
+
+      starGlow = 75;
+
+      nextNote = millis() + duration * 460;
+      songIndex++;
+
+      console.log('Star:', note);
+
+    } else {
+      songPlaying = false;
+      document.getElementById('message').textContent = '♪';
+    }
+  }
+}
+
+function playLight(i) {
+  userStartAudio();
+
+  piano.play(lights[i].note, 0.35, 0, 0.4);
+  lights[i].glow = 120;
+
+  document.getElementById('message').textContent =
+    lights[i].note + ' ♪';
+
+  console.log('Light', i + 1, lights[i].note);
+}
+
+function mousePressed() {
+  if (mouseX < 0 || mouseX > width ||
+      mouseY < 0 || mouseY > height) {
     return;
   }
 
-  getAudio();
+  // Clicking the star starts or stops the song
+  if (dist(mouseX, mouseY,
+      width * 0.48, height * 0.10) < width * 0.075) {
 
-  melodyPlaying = true;
-  star.classList.add('playing');
+    userStartAudio();
 
-  message.textContent = 'dance of the sugar plum fairy ♪';
-  console.log('Played star: Sugar Plum Fairy');
+    songPlaying = !songPlaying;
 
-  let elapsed = 0;
-  const beat = 460;
+    if (songPlaying) {
+      songIndex = 0;
+      nextNote = millis();
+      starGlow = 75;
 
-  sugarPlum.forEach((item, index) => {
-    const note = item[0];
-    const duration = item[1];
+      document.getElementById('message').textContent =
+        'sugar plum fairy ♪';
 
-    const timer = setTimeout(() => {
-      bell(notes[note], duration * 0.46);
-      flashLight(index % lights.length);
+      console.log('Sugar Plum Fairy started');
 
-      console.log('Melody note:', note);
-    }, elapsed);
-
-    melodyTimers.push(timer);
-    elapsed += duration * beat;
-  });
-
-  melodyTimers.push(setTimeout(stopMelody, elapsed + 600));
-}
-
-// Click the star
-star.addEventListener('click', playStar);
-
-// Keyboard controls
-function handleKey(k) {
-  const index = '12345678'.indexOf(k);
-
-  if (index !== -1) {
-    playLight(index);
-    return false;
-  }
-
-  if (k.toLowerCase() === 's') {
-    stopMelody();
-    return false;
-  }
-
-  return true;
-}
-
-// p5.js keyboard event
-if (typeof window.p5 === 'function') {
-  new p5(p => {
-    p.setup = () => p.noCanvas();
-
-    p.keyPressed = () => handleKey(p.key);
-  });
-} else {
-  document.addEventListener('keydown', event => {
-    if (!handleKey(event.key)) {
-      event.preventDefault();
+    } else {
+      document.getElementById('message').textContent = '♪';
     }
-  });
+
+    return false;
+  }
+
+  // Check which light was clicked
+  for (let i = 0; i < lights.length; i++) {
+    let x = width * lights[i].x / 100;
+    let y = height * lights[i].y / 100;
+
+    if (dist(mouseX, mouseY, x, y) < width * 0.045) {
+      playLight(i);
+      return false;
+    }
+  }
+}
+
+function keyPressed() {
+  let i = '12345678'.indexOf(key);
+
+  if (i !== -1) {
+    playLight(i);
+    return false;
+  }
+
+  if (key === 's' || key === 'S') {
+    songPlaying = false;
+    document.getElementById('message').textContent = '♪';
+    return false;
+  }
+}
+
+function windowResized() {
+  let w = min(windowWidth * 0.9, 480);
+  resizeCanvas(w, w * cat.height / cat.width);
 }

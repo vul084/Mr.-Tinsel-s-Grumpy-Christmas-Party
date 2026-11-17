@@ -1,34 +1,30 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Grumpy Little Christmas</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+  <title>Mr. Tinsel's Grumpy Christmas Party</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 
-  <script src="https://cdn.jsdelivr.net/npm/p5@1.11.9/lib/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/addons/p5.sound.min.js"></script>
 </head>
 
 <body>
-  <main>
-    <div class="instructions">
-        <h1> Mr. Tinsel's Grumpy Christmas Party </h1>
-      <p>click the lights to play a note / keys 1–8</p>
-      <p>click the star for sugar plum fairy / S to stop</p>
-    </div>
+  <h1>Mr. Tinsel's Grumpy Christmas Party</h1>
 
-    <div class="cat" id="cat">
-      <img src="christmas-cat.png" alt="Grumpy Christmas cat">
+  <div class="instructions">
+    <p>click the lights or press 1–8 to play a note</p>
+    <p>click the star to play sugar plum fairy / S to stop</p>
+  </div>
 
-      <div id="lights"></div>
+  <div id="cat-container"></div>
 
-      <button id="star" aria-label="Play Sugar Plum Fairy"></button>
-    </div>
-
-    <p id="message">♪</p>
-  </main>
+  <p id="message">♪</p>
 
   <script src="sketch.js"></script>
 </body>
